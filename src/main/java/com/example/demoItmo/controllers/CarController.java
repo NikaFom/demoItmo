@@ -64,7 +64,7 @@ public class CarController {
     }
 
     @GetMapping("/userCars/{id}")
-    @Operation(summary = "Получить список автомобилей пользователя")
+    @Operation(summary = "Получить список автомобилей пользователя по ID")
     public List<CarInfoResponse> getUserCars(@PathVariable Long id) {
         return carService.getUserCars(id);
     }
