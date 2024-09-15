@@ -14,6 +14,7 @@ import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -33,26 +34,44 @@ public class CarService {
     }
 
     public CarInfoResponse getCar(Long id) {
-        CarEntity car = carRepository.findById(id).orElse(new CarEntity());
+        CarEntity car = getCarFromDB(id);
         return mapper.convertValue(car, CarInfoResponse.class);
     }
 
+    private CarEntity getCarFromDB(Long id) {
+        return carRepository.findById(id).orElse(new CarEntity());
+    }
+
     public CarInfoResponse updateCar(Long id, @Valid CarInfoRequest request) {
-        return CarInfoResponse.builder()
-                .brand(request.getBrand())
-                .model(request.getModel())
-                .year(request.getYear())
-                .doors(request.getDoors())
-                .capacity(request.getCapacity())
-                .speed(request.getSpeed())
-                .colour(request.getColour())
-                .build();
+        CarEntity car = getCarFromDB(id);
+
+        car.setBrand(request.getBrand());
+        car.setModel(request.getModel() == null ? car.getModel() : request.getModel());
+        car.setYear(request.getYear() == null ? car.getYear() : request.getYear());
+        car.setDoors(request.getDoors() == null ? car.getYear() : request.getDoors());
+        car.setCapacity(request.getCapacity() == null ? car.getCapacity() : request.getCapacity());
+        car.setSpeed(request.getSpeed() == null ? car.getSpeed() : request.getSpeed());
+        car.setColour(request.getColour() == null ? car.getColour() : request.getColour());
+
+
+        car.setUpdatedAt(LocalDateTime.now());
+        car.setStatus(CarStatus.UPDATED);
+
+        CarEntity savedCar = carRepository.save(car);
+
+        return mapper.convertValue(savedCar, CarInfoResponse.class);
     }
 
     public void deleteCar(Long id) {
+        CarEntity car = getCarFromDB(id);
+        car.setUpdatedAt(LocalDateTime.now());
+        car.setStatus(CarStatus.DELETED);
+        carRepository.save(car);
     }
 
     public List<CarInfoResponse> getAllCars() {
-        return Collections.emptyList();
+        return carRepository.findAll().stream()
+                .map(carEntity -> mapper.convertValue(carEntity, CarInfoResponse.class))
+                .collect(Collectors.toList());
     }
 }

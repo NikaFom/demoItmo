@@ -15,6 +15,7 @@ import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -38,8 +39,12 @@ public class UserService {
     }
     
     public UserInfoResponse getUser(Long id) {
-        UserEntity user = userRepository.findById(id).orElse(new UserEntity());
+        UserEntity user = getUserFromDB(id);
         return mapper.convertValue(user, UserInfoResponse.class);
+    }
+
+    private UserEntity getUserFromDB(Long id) {
+        return userRepository.findById(id).orElse(new UserEntity());
     }
 
     public UserInfoResponse updateUser(Long id, @Valid UserInfoRequest request) {
@@ -47,21 +52,34 @@ public class UserService {
             return null;
         }
 
-        return UserInfoResponse.builder()
-                .email(request.getEmail())
-                .password(request.getPassword())
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .middleName(request.getMiddleName())
-                .age(request.getAge())
-                .gender(request.getGender())
-                .build();
+        UserEntity user = getUserFromDB(id);
+
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword() == null ? user.getPassword() : request.getPassword());
+        user.setFirstName(request.getFirstName() == null ? user.getFirstName() : request.getFirstName());
+        user.setLastName(request.getLastName() == null ? user.getLastName() : request.getLastName());
+        user.setMiddleName(request.getMiddleName() == null ? user.getMiddleName() : request.getMiddleName());
+        user.setAge(request.getAge() == null ? user.getAge() : request.getAge());
+        user.setGender(request.getGender() == null ? user.getGender() : request.getGender());
+
+        user.setUpdatedAt(LocalDateTime.now());
+        user.setStatus(UserStatus.UPDATED);
+
+        UserEntity savedUser = userRepository.save(user);
+
+        return mapper.convertValue(savedUser, UserInfoResponse.class);
     }
 
     public void deleteUser(Long id) {
+        UserEntity user = getUserFromDB(id);
+        user.setUpdatedAt(LocalDateTime.now());
+        user.setStatus(UserStatus.DELETED);
+        userRepository.save(user);
     }
 
     public List<UserInfoResponse> getAllUsers() {
-        return Collections.emptyList();
+        return userRepository.findAll().stream()
+                .map(userEntity -> mapper.convertValue(userEntity, UserInfoResponse.class))
+                .collect(Collectors.toList());
     }
 }
