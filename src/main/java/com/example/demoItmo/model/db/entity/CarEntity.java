@@ -2,6 +2,7 @@ package com.example.demoItmo.model.db.entity;
 
 import com.example.demoItmo.model.enums.CarStatus;
 import com.example.demoItmo.model.enums.Colour;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -53,5 +54,6 @@ public class CarEntity {
     CarStatus status;
 
     @ManyToOne
+    @JsonBackReference(value = "driver_cars")
     UserEntity user;
 }

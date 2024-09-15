@@ -5,15 +5,19 @@ import com.example.demoItmo.model.db.repository.UserRepository;
 import com.example.demoItmo.model.dto.request.UserInfoRequest;
 import com.example.demoItmo.model.dto.response.UserInfoResponse;
 import com.example.demoItmo.model.enums.UserStatus;
+import com.example.demoItmo.utils.PaginationUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.validator.routines.EmailValidator;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import javax.validation.Valid;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,8 +47,8 @@ public class UserService {
         return mapper.convertValue(user, UserInfoResponse.class);
     }
 
-    private UserEntity getUserFromDB(Long id) {
-        return userRepository.findById(id).orElse(new UserEntity());
+    public UserEntity getUserFromDB(Long id) {
+        return userRepository.findById(id).orElse(null);
     }
 
     public UserInfoResponse updateUser(Long id, @Valid UserInfoRequest request) {
@@ -77,9 +81,24 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public List<UserInfoResponse> getAllUsers() {
-        return userRepository.findAll().stream()
+    public Page<UserInfoResponse> getAllUsers(Integer page, Integer perPage, String sort, Sort.Direction order, String filter) {
+        Pageable pageRequest = PaginationUtil.getPageRequest(page, perPage, sort, order);
+
+        Page<UserEntity> all;
+        if(filter == null) {
+            all = userRepository.findAllByStatusNot(pageRequest, UserStatus.DELETED);
+        } else {
+            all = userRepository.findAllByStatusNotFiltered(pageRequest, UserStatus.DELETED, filter.toLowerCase());
+        }
+
+        List<UserInfoResponse> content = all.getContent().stream()
                 .map(userEntity -> mapper.convertValue(userEntity, UserInfoResponse.class))
                 .collect(Collectors.toList());
+
+        return new PageImpl<>(content, pageRequest, all.getTotalElements());
+    }
+
+    public UserEntity updateUserData(UserEntity user) {
+        return userRepository.save(user);
     }
 }
