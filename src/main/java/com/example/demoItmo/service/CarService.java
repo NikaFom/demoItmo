@@ -1,5 +1,6 @@
 package com.example.demoItmo.service;
 
+import com.example.demoItmo.exceptions.CustomException;
 import com.example.demoItmo.model.db.entity.CarEntity;
 import com.example.demoItmo.model.db.entity.UserEntity;
 import com.example.demoItmo.model.db.repository.CarRepository;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.validation.Valid;
@@ -46,7 +48,7 @@ public class CarService {
     }
 
     private CarEntity getCarFromDB(Long id) {
-        return carRepository.findById(id).orElse(new CarEntity());
+        return carRepository.findById(id).orElseThrow(() -> new CustomException(String.format("Car with ID: %s not found", id), HttpStatus.NOT_FOUND));
     }
 
     public CarInfoResponse updateCar(Long id, @Valid CarInfoRequest request) {
@@ -94,15 +96,9 @@ public class CarService {
     }
 
     public void addCarToUser(@Valid CarToUserRequest request) {
-        CarEntity car = carRepository.findById(request.getCarId()).orElse(null);
-        if(car == null) {
-            return;
-        }
+        CarEntity car = carRepository.findById(request.getCarId()).orElseThrow(() -> new CustomException(String.format("Car with ID: %s not found", request.getCarId()), HttpStatus.NOT_FOUND));
 
         UserEntity user = userService.getUserFromDB(request.getUserId());
-        if(user == null) {
-            return;
-        }
 
         user.getCars().add(car);
         userService.updateUserData(user);
@@ -113,9 +109,6 @@ public class CarService {
 
     public List<CarInfoResponse> getUserCars(Long id) {
         UserEntity user = userService.getUserFromDB(id);
-        if(user == null) {
-            return null;
-        }
 
         return user.getCars().stream()
                 .map(carEntity -> mapper.convertValue(carEntity, CarInfoResponse.class))

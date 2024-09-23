@@ -1,5 +1,6 @@
 package com.example.demoItmo.service;
 
+import com.example.demoItmo.exceptions.CustomException;
 import com.example.demoItmo.model.db.entity.UserEntity;
 import com.example.demoItmo.model.db.repository.UserRepository;
 import com.example.demoItmo.model.dto.request.UserInfoRequest;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.validation.Valid;
@@ -29,9 +31,12 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserInfoResponse createUser(@Valid UserInfoRequest request) {
-        if(!EmailValidator.getInstance().isValid(request.getEmail())) {
-            return null;
-        }
+        validateEmail(request);
+
+        userRepository.findByEmailIgnoreCase(request.getEmail())
+                .ifPresent(userEntity -> {
+                    throw new CustomException(String.format("User with email: %s already exists", request.getEmail()), HttpStatus.BAD_REQUEST);
+                });
 
         UserEntity user = mapper.convertValue(request, UserEntity.class);
         user.setCreatedAt(LocalDateTime.now());
@@ -41,6 +46,12 @@ public class UserService {
 
         return mapper.convertValue(savedUser, UserInfoResponse.class);
     }
+
+    private void validateEmail(UserInfoRequest request) {
+        if(!EmailValidator.getInstance().isValid(request.getEmail())) {
+            throw new CustomException("Invalid email format", HttpStatus.BAD_REQUEST);
+        }
+    }
     
     public UserInfoResponse getUser(Long id) {
         UserEntity user = getUserFromDB(id);
@@ -48,13 +59,16 @@ public class UserService {
     }
 
     public UserEntity getUserFromDB(Long id) {
-        return userRepository.findById(id).orElse(null);
+        return userRepository.findById(id).orElseThrow(() -> new CustomException("User not found", HttpStatus.NOT_FOUND));
     }
 
     public UserInfoResponse updateUser(Long id, @Valid UserInfoRequest request) {
-        if(!EmailValidator.getInstance().isValid(request.getEmail())) {
-            return null;
-        }
+        validateEmail(request);
+
+        userRepository.findByEmailIgnoreCase(request.getEmail())
+                .ifPresent(userEntity -> {
+                    throw new CustomException(String.format("User with email: %s already exists", request.getEmail()), HttpStatus.BAD_REQUEST);
+                });
 
         UserEntity user = getUserFromDB(id);
 
