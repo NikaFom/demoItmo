@@ -96,7 +96,7 @@ public class CarService {
     }
 
     public void addCarToUser(@Valid CarToUserRequest request) {
-        CarEntity car = carRepository.findById(request.getCarId()).orElseThrow(() -> new CustomException(String.format("Car with ID: %s not found", request.getCarId()), HttpStatus.NOT_FOUND));
+        CarEntity car = getCarFromDB(request.getCarId());
 
         UserEntity user = userService.getUserFromDB(request.getUserId());
 
