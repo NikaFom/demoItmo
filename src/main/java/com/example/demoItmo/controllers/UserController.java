@@ -10,9 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
-import javax.persistence.criteria.CriteriaBuilder;
 import javax.validation.Valid;
-import java.util.List;
 
 @Tag(name = "Пользователи")
 @RestController
